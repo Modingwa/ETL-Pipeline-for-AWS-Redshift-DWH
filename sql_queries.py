@@ -18,6 +18,7 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 # CREATE TABLES
 
 staging_events_table_create= ("""
+CREATE TABLE IF NOT EXISTS staging_events (
     artist varchar,
     auth varchar,
     firstName varchar,
@@ -36,6 +37,7 @@ staging_events_table_create= ("""
     ts varchar,
     userAgent varchar,
     userId integer
+)
 """)
 
 staging_songs_table_create = ("""
@@ -112,34 +114,127 @@ CREATE TABLE IF NOT EXISTS time (
 # STAGING TABLES
 
 staging_events_copy = ("""
-COPY staging_events from 's3://udacity-dend/log_data' 
-CREDENTIALS 'aws_iam_role={}'
+COPY staging_events from {} 
+CREDENTIALS 'aws_iam_role={}' 
 REGION 'us-west-2' 
-FORMAT AS JSON 's3://udacity-dend/log_json_path.json'; 
-""").format(config['IAM_ROLE']['ARN'].strip('"\''))
+FORMAT AS JSON {}; 
+""").format(config['S3']['LOG_DATA'], config['IAM_ROLE']['ARN'].strip('"\''), config['S3']['LOG_JSONPATH'])
 
 staging_songs_copy = ("""
-copy staging_songs from 's3://udacity-dend/song_data' 
+copy staging_songs from {} 
 CREDENTIALS 'aws_iam_role={}' 
 REGION 'us-west-2' 
 JSON 'auto';
-""").format(config['IAM_ROLE']['ARN'].strip('"\''))
+""").format(config['S3']['SONG_DATA'], config['IAM_ROLE']['ARN'].strip('"\''))
 
 # FINAL TABLES
 
 songplay_table_insert = ("""
+INSERT INTO songplays (
+    start_time, 
+    user_id, 
+    level, 
+    song_id, 
+    artist_id, 
+    session_id, 
+    location, 
+    user_agent
+)
+(
+SELECT 
+    e.ts,
+    e.userid,
+    e.level,
+    s.song_id,
+    s.artist_id,
+    e.sessionid,
+    e.location,
+    e.useragent
+FROM staging_events e 
+JOIN staging_songs s
+ON  (e.song = s.title AND e.artist = s.artist_name)   
+)
 """)
 
 user_table_insert = ("""
+INSERT INTO users (
+    user_id,
+    first_name, 
+    last_name, 
+    gender, 
+    level
+)
+(
+SELECT DISTINCT 
+    userid, 
+    firstname, 
+    lastname, 
+    gender, 
+    level 
+FROM staging_events 
+WHERE userid IS NOT NULL
+)
 """)
 
 song_table_insert = ("""
+INSERT INTO songs (
+    song_id, 
+    title, 
+    artist_id, 
+    year, 
+    duration
+) 
+(
+SELECT DISTINCT 
+    song_id, 
+    title, 
+    artist_id, 
+    year, 
+    duration 
+FROM staging_songs
+)
 """)
 
 artist_table_insert = ("""
+INSERT INTO artists (
+    artist_id,
+    name, 
+    location, 
+    latitude, 
+    longitude
+) 
+(
+SELECT DISTINCT 
+    artist_id, 
+    artist_name,
+    artist_location, 
+    artist_latitude, 
+    artist_longitude
+FROM staging_songs
+)
 """)
 
 time_table_insert = ("""
+INSERT INTO time (
+    start_time,
+    hour, 
+    day, 
+    week, 
+    month,
+    year,
+    weekday
+) 
+(
+SELECT DISTINCT 
+    TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second' as start_time,
+    EXTRACT(HOUR FROM TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second') as hour,
+    EXTRACT(DAY FROM TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second') as day,
+    EXTRACT(WEEK FROM TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second') as week,
+    EXTRACT(MONTH FROM TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second') as month, 
+    EXTRACT(YEAR FROM TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second') as year,
+    EXTRACT(DOW FROM TIMESTAMP 'epoch' + (ts::bigint)/1000 * INTERVAL '1 second') as weekday
+FROM staging_events
+)
 """)
 
 # QUERY LISTS

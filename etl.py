@@ -39,7 +39,7 @@ def main():
     cur = conn.cursor()
 
     # Load data to staging tables
-    load_staging_tables(cur, conn)
+    #load_staging_tables(cur, conn)
     # Insert data to analytics tables
     insert_tables(cur, conn)
 
