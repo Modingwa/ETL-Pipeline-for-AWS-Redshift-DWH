@@ -31,19 +31,24 @@ def create_tables(cur, conn):
 
 def main():
     # Load configuration data
+    print('Loading configuration data...')
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
 
     # Connect to Redshift cluster
+    print('Making connection to redshift cluster...')
     conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
     cur = conn.cursor()
 
     # drop database tables in they exists
+    print('Drop existing database tables...')
     drop_tables(cur, conn)
     # create database tables
+    print("Creating database tables...")
     create_tables(cur, conn)
 
     # close database connection
+    print("Close database connection...")
     conn.close()
 
 

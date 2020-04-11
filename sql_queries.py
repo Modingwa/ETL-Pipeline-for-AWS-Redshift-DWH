@@ -5,6 +5,8 @@ import configparser
 config = configparser.ConfigParser()
 config.read('dwh.cfg')
 
+# Table Names
+tables = ['staging_events', 'staging_songs', 'songplays', 'users', 'songs', 'artists', 'time']
 # DROP TABLES
 
 staging_events_table_drop = "DROP TABLE IF EXISTS staging_events;"
@@ -237,7 +239,11 @@ FROM staging_events
 )
 """)
 
-# QUERY LISTS
+# Data Quality queries
+dq_queries = {}
+for table in tables:
+    query = "SELECT COUNT(*) AS total FROM {};".format(table)
+    dq_queries[table] = query
 
 create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
