@@ -21,7 +21,7 @@ In addition to the data files, the project workspace includes four files:
 * AWS RedShift cluster with a schema called dwh
 * configparser
 * psycopg2
-python 3 is needed to run the python scripts.
+* python 3 is needed to run the python scripts.
 
 ## Database structure
 ![ERD image](/songplays_erd.png)
